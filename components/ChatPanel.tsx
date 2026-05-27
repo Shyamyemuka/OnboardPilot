@@ -6,25 +6,36 @@ import type { ChatMessage } from "@/types";
 interface ChatPanelProps {
   repoName: string;
   analysisJSON: string;
+  messagesState?: {
+    messages: ChatMessage[];
+    setMessages: (msgs: ChatMessage[]) => void;
+  };
 }
 
-export default function ChatPanel({ repoName, analysisJSON }: ChatPanelProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export default function ChatPanel({ repoName, analysisJSON, messagesState }: ChatPanelProps) {
+  // Use stateful props if passed from parent workspace, otherwise fall back to local state
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
+  
+  const messages = messagesState ? messagesState.messages : localMessages;
+  const setMessages = messagesState ? messagesState.setMessages : setLocalMessages;
+
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Initialize with greeting message
+  // Initialize with greeting message only if empty (or if using local state)
   useEffect(() => {
-    setMessages([
-      {
-        role: "assistant",
-        content: `Hello! I've mapped the **${repoName}** codebase and generated your onboarding blueprint. Ask me anything about the directories, modules, routing, or how to get started on your first issue!`,
-      },
-    ]);
-  }, [repoName]);
+    if (messages.length === 0) {
+      setMessages([
+        {
+          role: "assistant",
+          content: `Hello! I've mapped the **${repoName}** codebase and generated your onboarding blueprint. Ask me anything about the directories, modules, routing, or how to get started on your first issue!`,
+        },
+      ]);
+    }
+  }, [repoName, setMessages]);
 
   // Scroll to bottom whenever messages list updates
   useEffect(() => {
@@ -58,7 +69,7 @@ export default function ChatPanel({ repoName, analysisJSON }: ChatPanelProps) {
       }
 
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      setMessages([...updatedMessages, { role: "assistant", content: data.reply }]);
     } catch (err: any) {
       console.error(err);
       setError(err?.message || "Something went wrong. Please try again.");
