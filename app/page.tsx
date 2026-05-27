@@ -77,6 +77,14 @@ export default function LandingPage() {
             </span>
           ) : user ? (
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="text-on-surface hover:text-[#DEC29A] transition-colors text-xs font-bold cursor-pointer uppercase tracking-wider flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[16px]">dashboard</span>
+                Dashboard
+              </button>
+              <span className="text-border-subtle select-none">|</span>
               {/* User Avatar fetched from GitHub profile email profile pic */}
               <img
                 alt={user.displayName || "User Profile"}

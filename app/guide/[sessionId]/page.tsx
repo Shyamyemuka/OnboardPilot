@@ -277,7 +277,15 @@ export default function GuidePage({ params }: PageProps) {
 
             {/* Dynamic Avatar pic based on GitHub email */}
             {user ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.push("/dashboard")}
+                  className="text-on-surface hover:text-[#DEC29A] transition-colors text-xs font-bold cursor-pointer uppercase tracking-wider flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[16px]">dashboard</span>
+                  <span className="hidden sm:inline">Dashboard</span>
+                </button>
+                <span className="text-border-subtle select-none">|</span>
                 <img
                   alt="Profile"
                   className="h-8 w-8 rounded-full border border-border-subtle shadow-sm object-cover"
@@ -308,7 +316,7 @@ export default function GuidePage({ params }: PageProps) {
       <div className="flex-1 flex overflow-hidden w-full max-w-7xl mx-auto relative">
         {/* Left Side History Sidebar drawer */}
         {sidebarOpen && (
-          <aside className="absolute md:relative inset-y-0 left-0 w-[260px] bg-surface border-r border-border-subtle z-20 flex flex-col shrink-0 transition-transform duration-300 shadow-lg md:shadow-none">
+          <aside className="absolute md:relative inset-y-0 left-0 w-[220px] bg-surface border-r border-border-subtle z-20 flex flex-col shrink-0 transition-transform duration-300 shadow-lg md:shadow-none">
             <div className="p-4 border-b border-border-subtle shrink-0 font-semibold text-xs tracking-wider uppercase text-text-muted flex items-center gap-1.5 select-none bg-surface-bright">
               <span className="material-symbols-outlined text-[16px]">history</span>
               Previous Scans
