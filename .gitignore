@@ -36,3 +36,4 @@ logs
 # Sensitive/Build artifacts
 .vercel/
 .turbo/
+*.tsbuildinfo
