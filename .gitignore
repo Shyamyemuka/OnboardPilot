@@ -37,3 +37,9 @@ logs
 .vercel/
 .turbo/
 *.tsbuildinfo
+
+# Firebase and AI Agents
+.agents/
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
