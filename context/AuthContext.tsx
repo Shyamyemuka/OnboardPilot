@@ -1,28 +1,17 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import {
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut,
-  GithubAuthProvider,
-  User,
-} from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { User, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { auth, githubProvider } from "@/lib/firebase";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signInWithGitHub: () => Promise<void>;
+  signInWithGitHub: () => Promise<User>;
   logOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  signInWithGitHub: async () => {},
-  logOut: async () => {},
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthContextProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -37,22 +26,27 @@ export function AuthContextProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const signInWithGitHub = async () => {
-    const provider = new GithubAuthProvider();
-    // Scope optional, but good practice
-    provider.addScope("repo");
+    setLoading(true);
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, githubProvider);
+      return result.user;
     } catch (error) {
       console.error("Error signing in with GitHub:", error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const logOut = async () => {
+    setLoading(true);
     try {
       await signOut(auth);
     } catch (error) {
       console.error("Error signing out:", error);
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,4 +57,10 @@ export function AuthContextProvider({ children }: { children: React.ReactNode })
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthContextProvider");
+  }
+  return context;
+}

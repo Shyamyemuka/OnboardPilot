@@ -5,6 +5,7 @@ import type { GuideJSON } from "@/types";
 import DirectoryTree from "./DirectoryTree";
 import FileCard from "./FileCard";
 import StarterTasks from "./StarterTasks";
+import MermaidRenderer from "./MermaidRenderer";
 
 interface GuidePanelProps {
   analysis: GuideJSON;
@@ -13,6 +14,7 @@ interface GuidePanelProps {
 export default function GuidePanel({ analysis }: GuidePanelProps) {
   const [sections, setSections] = useState({
     architecture: true,
+    workflow: true,
     directory: true,
     keyFiles: true,
     modules: true,
@@ -63,6 +65,27 @@ export default function GuidePanel({ analysis }: GuidePanelProps) {
             </div>
           )}
         </div>
+
+        {/* Section: Visual Workflow */}
+        {analysis.mermaidFlowchart && (
+          <div className="mb-10 border-b border-surface-variant/40 pb-6">
+            <h2
+              onClick={() => toggleSection("workflow")}
+              className="text-headline-md font-headline-md mb-4 flex items-center gap-2.5 cursor-pointer hover:text-[#DEC29A] transition-colors select-none font-semibold text-on-surface"
+            >
+              <span className="material-symbols-outlined text-[20px] text-[#A3ABC4]">insights</span>
+              Visual Workflow
+              <span className="material-symbols-outlined text-[18px] ml-auto text-text-muted">
+                {sections.workflow ? "expand_less" : "expand_more"}
+              </span>
+            </h2>
+            {sections.workflow && (
+              <div className="transition-all pl-1">
+                <MermaidRenderer chart={analysis.mermaidFlowchart} />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Section: Directory Breakdown */}
         <div className="mb-10 border-b border-surface-variant/40 pb-6">

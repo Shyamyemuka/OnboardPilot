@@ -12,6 +12,7 @@ export interface GuideJSON {
     files: string[];
     description: string;
   }[];
+  mermaidFlowchart: string;
 }
 
 export interface ChatMessage {

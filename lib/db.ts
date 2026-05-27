@@ -1,16 +1,15 @@
+import { db } from "./firebase";
 import {
   collection,
   doc,
+  setDoc,
   getDoc,
   getDocs,
   query,
-  setDoc,
-  updateDoc,
   where,
   orderBy,
-  serverTimestamp,
+  updateDoc,
 } from "firebase/firestore";
-import { db } from "./firebase";
 import type { GuideJSON, ChatMessage } from "@/types";
 
 export interface SessionDocument {
@@ -21,10 +20,25 @@ export interface SessionDocument {
   repoUrl: string;
   analysis: GuideJSON;
   messages: ChatMessage[];
-  createdAt: any;
-  lastActiveAt: any;
+  createdAt: number;
 }
 
+// Firestore physical storage document interface
+interface SessionData {
+  uid: string;
+  repoOwner: string;
+  repoName: string;
+  repoUrl: string;
+  analysisJSON: string; // stored as stringified JSON to avoid Firestore structural depth limits
+  messages: ChatMessage[];
+  createdAt: number;
+}
+
+const SESSIONS_COLLECTION = "sessions";
+
+/**
+ * Saves a new analysis session to Firestore
+ */
 export async function saveAnalysisSession(
   sessionId: string,
   uid: string,
@@ -32,48 +46,92 @@ export async function saveAnalysisSession(
   analysis: GuideJSON,
   messages: ChatMessage[] = []
 ): Promise<void> {
-  const sessionRef = doc(db, "sessions", sessionId);
-  await setDoc(sessionRef, {
+  const sessionDocRef = doc(db, SESSIONS_COLLECTION, sessionId);
+  const data: SessionData = {
     uid,
     repoOwner: repoInfo.owner,
     repoName: repoInfo.repo,
     repoUrl: repoInfo.url,
-    analysis,
+    analysisJSON: JSON.stringify(analysis),
     messages,
-    createdAt: serverTimestamp(),
-    lastActiveAt: serverTimestamp(),
-  });
+    createdAt: Date.now(),
+  };
+  await setDoc(sessionDocRef, data);
 }
 
+/**
+ * Updates the chat messages inside an active session
+ */
 export async function updateSessionMessages(
   sessionId: string,
   messages: ChatMessage[]
 ): Promise<void> {
-  const sessionRef = doc(db, "sessions", sessionId);
-  await updateDoc(sessionRef, {
+  const sessionDocRef = doc(db, SESSIONS_COLLECTION, sessionId);
+  await updateDoc(sessionDocRef, {
     messages,
-    lastActiveAt: serverTimestamp(),
   });
 }
 
-export async function getSessionData(sessionId: string): Promise<SessionDocument | null> {
-  const sessionRef = doc(db, "sessions", sessionId);
-  const snap = await getDoc(sessionRef);
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() } as SessionDocument;
-}
-
+/**
+ * Fetches all sessions for a specific user ID
+ */
 export async function getUserSessions(uid: string): Promise<SessionDocument[]> {
+  const sessionsRef = collection(db, SESSIONS_COLLECTION);
   const q = query(
-    collection(db, "sessions"),
+    sessionsRef,
     where("uid", "==", uid),
-    orderBy("lastActiveAt", "desc")
+    orderBy("createdAt", "desc")
   );
 
-  const snap = await getDocs(q);
+  const querySnapshot = await getDocs(q);
   const sessions: SessionDocument[] = [];
-  snap.forEach((d) => {
-    sessions.push({ id: d.id, ...d.data() } as SessionDocument);
+  
+  querySnapshot.forEach((doc) => {
+    const rawData = doc.data() as SessionData;
+    try {
+      sessions.push({
+        id: doc.id,
+        uid: rawData.uid,
+        repoOwner: rawData.repoOwner,
+        repoName: rawData.repoName,
+        repoUrl: rawData.repoUrl,
+        analysis: JSON.parse(rawData.analysisJSON),
+        messages: rawData.messages || [],
+        createdAt: rawData.createdAt,
+      });
+    } catch (parseErr) {
+      console.error(`Failed to parse session JSON for document ${doc.id}:`, parseErr);
+    }
   });
+  
   return sessions;
+}
+
+/**
+ * Retrieves a single session by its unique ID
+ */
+export async function getSessionData(sessionId: string): Promise<SessionDocument | null> {
+  const sessionDocRef = doc(db, SESSIONS_COLLECTION, sessionId);
+  const docSnap = await getDoc(sessionDocRef);
+  
+  if (docSnap.exists()) {
+    const rawData = docSnap.data() as SessionData;
+    try {
+      return {
+        id: docSnap.id,
+        uid: rawData.uid,
+        repoOwner: rawData.repoOwner,
+        repoName: rawData.repoName,
+        repoUrl: rawData.repoUrl,
+        analysis: JSON.parse(rawData.analysisJSON),
+        messages: rawData.messages || [],
+        createdAt: rawData.createdAt,
+      };
+    } catch (parseErr) {
+      console.error(`Failed to parse session JSON for document ${docSnap.id}:`, parseErr);
+      return null;
+    }
+  }
+  
+  return null;
 }

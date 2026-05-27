@@ -5,10 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import ProgressSteps from "@/components/ProgressSteps";
 import { getFileTree, selectKeyFiles, getFileContent } from "@/lib/github";
 import { generateSessionId } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { saveAnalysisSession } from "@/lib/db";
 
 function AnalyzeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
 
   const owner = searchParams.get("owner") || "";
   const repo = searchParams.get("repo") || "";
@@ -89,6 +92,20 @@ function AnalyzeContent() {
           `onboardpilot_repo_${sessionId}`,
           JSON.stringify({ owner, repo, url })
         );
+
+        if (user) {
+          try {
+            await saveAnalysisSession(
+              sessionId,
+              user.uid,
+              { owner, repo, url },
+              guideJSON,
+              []
+            );
+          } catch (dbErr) {
+            console.error("Failed to persist session to Firestore:", dbErr);
+          }
+        }
 
         router.push(`/guide/${sessionId}`);
       } catch (err: any) {

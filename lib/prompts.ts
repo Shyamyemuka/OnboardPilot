@@ -36,7 +36,8 @@ Return this exact JSON structure:
       "files": ["relevant/file.py"],
       "description": "Specific description of what to do and why it's a good starting point"
     }
-  ]
+  ],
+  "mermaidFlowchart": "A valid, complete Mermaid.js flowchart (starting with 'graph TD') mapping the high-level request lifecycle or module execution flow in the codebase. Use concise, descriptive nodes and clean connectors. Keep it robust and compile-safe (avoid illegal special characters in node labels)."
 }
 `.trim();
 
