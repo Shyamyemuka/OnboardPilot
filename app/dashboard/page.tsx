@@ -21,6 +21,7 @@ export default function DashboardPage() {
     }
 
     async function loadSessions() {
+      if (!user) return;
       try {
         const userSessions = await getUserSessions(user.uid);
         setSessions(userSessions);
