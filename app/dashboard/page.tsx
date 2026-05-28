@@ -52,15 +52,12 @@ export default function DashboardPage() {
     <div className="bg-surface-container-lowest text-on-surface font-body-md min-h-screen flex flex-col relative overflow-hidden">
       {/* TopNavBar */}
       <nav className="w-full flex justify-between items-center h-16 px-4 md:px-16 max-w-7xl mx-auto border-b border-surface-variant bg-surface-container-lowest z-50">
-        <div className="flex items-center gap-4 cursor-pointer" onClick={() => router.push("/")}>
+        <div className="flex items-center cursor-pointer" onClick={() => router.push("/")}>
           <img
             alt="OnboardPilot Logo"
-            className="h-8 w-auto object-contain select-none"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdb4c8InNQLgfEF-FTl6McOpe1Sr8KFpjFtV0_x3EiHtqpcjjVzw_xrHIybekvFQ78N-0JOP_FJ9n9bgaWR_gQikb1PmK7eVO76Ji2qc3_cfnkaevN9d97rKfciK0AzHhYsZozItcdaTc7leNIldoaHmshyZd7HIayv-ZnN8AkhCdwVzu1VBPY0yMxA8DcwIU2xVKvE1BVcS7MX7i_641D2oQDfSLqVla4eGuWl082B-5I2HDC-wz5yrJUf7i4Uebvenw-Mex0HZyq"
+            className="h-10 w-auto object-contain select-none"
+            src="/logo.png"
           />
-          <span className="text-body-lg font-headline-md font-bold tracking-tight text-primary hidden sm:inline">
-            OnboardPilot
-          </span>
         </div>
 
         <div className="flex items-center gap-4">

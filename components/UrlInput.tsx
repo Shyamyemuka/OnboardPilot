@@ -27,10 +27,6 @@ export default function UrlInput({ onSubmit }: UrlInputProps) {
   const handleExampleSelect = (exampleUrl: string) => {
     setUrl(exampleUrl);
     setError(null);
-    const parsed = parseGitHubUrl(exampleUrl);
-    if (parsed) {
-      onSubmit(parsed.owner, parsed.repo, exampleUrl);
-    }
   };
 
   return (

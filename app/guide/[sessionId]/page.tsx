@@ -254,12 +254,16 @@ export default function GuidePage({ params }: PageProps) {
                 {sidebarOpen ? "menu_open" : "menu"}
               </span>
             </button>
-            <span
-              className="text-body-lg font-headline-md font-bold tracking-tight text-primary cursor-pointer hover:opacity-80 transition-opacity hidden sm:inline"
+            <div
+              className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => router.push("/")}
             >
-              OnboardPilot
-            </span>
+              <img
+                alt="OnboardPilot Logo"
+                className="h-10 w-auto object-contain select-none"
+                src="/logo.png"
+              />
+            </div>
             <span className="text-text-muted text-label-sm font-label-sm px-1 select-none hidden sm:inline">/</span>
             <span className="text-xs md:text-sm font-body-md font-bold text-on-surface bg-surface-container px-2 py-0.5 rounded border border-border-subtle max-w-[150px] md:max-w-xs truncate">
               {repoInfo?.owner}/{repoInfo?.repo}

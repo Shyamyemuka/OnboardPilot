@@ -174,8 +174,8 @@ function AnalyzeContent() {
       <header className="mb-16 flex flex-col items-center text-center select-none">
         <img
           alt="OnboardPilot Logo"
-          className="h-16 w-auto object-contain mb-8"
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdb4c8InNQLgfEF-FTl6McOpe1Sr8KFpjFtV0_x3EiHtqpcjjVzw_xrHIybekvFQ78N-0JOP_FJ9n9bgaWR_gQikb1PmK7eVO76Ji2qc3_cfnkaevN9d97rKfciK0AzHhYsZozItcdaTc7leNIldoaHmshyZd7HIayv-ZnN8AkhCdwVzu1VBPY0yMxA8DcwIU2xVKvE1BVcS7MX7i_641D2oQDfSLqVla4eGuWl082B-5I2HDC-wz5yrJUf7i4Uebvenw-Mex0HZyq"
+          className="h-12 w-auto object-contain mb-8"
+          src="/logo.png"
         />
         <h1 className="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-primary mb-4 tracking-tight text-3xl md:text-4xl font-semibold">
           Analyzing Repository

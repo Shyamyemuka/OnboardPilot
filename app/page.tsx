@@ -61,11 +61,11 @@ export default function LandingPage() {
     <div className="bg-surface-container-lowest text-on-surface font-body-md min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
       {/* TopNavBar */}
       <nav className="absolute top-0 w-full flex justify-between items-center h-16 px-4 md:px-16 max-w-7xl mx-auto border-b border-surface-variant bg-surface-container-lowest z-50">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center cursor-pointer" onClick={() => router.push("/")}>
           <img
             alt="OnboardPilot Logo"
-            className="h-8 w-auto object-contain select-none"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdb4c8InNQLgfEF-FTl6McOpe1Sr8KFpjFtV0_x3EiHtqpcjjVzw_xrHIybekvFQ78N-0JOP_FJ9n9bgaWR_gQikb1PmK7eVO76Ji2qc3_cfnkaevN9d97rKfciK0AzHhYsZozItcdaTc7leNIldoaHmshyZd7HIayv-ZnN8AkhCdwVzu1VBPY0yMxA8DcwIU2xVKvE1BVcS7MX7i_641D2oQDfSLqVla4eGuWl082B-5I2HDC-wz5yrJUf7i4Uebvenw-Mex0HZyq"
+            className="h-10 w-auto object-contain select-none"
+            src="/logo.png"
           />
         </div>
 
@@ -117,8 +117,8 @@ export default function LandingPage() {
         <div className="mb-8 flex flex-col items-center">
           <img
             alt="OnboardPilot Logo Main"
-            className="w-48 h-auto mb-6 object-contain"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdb4c8InNQLgfEF-FTl6McOpe1Sr8KFpjFtV0_x3EiHtqpcjjVzw_xrHIybekvFQ78N-0JOP_FJ9n9bgaWR_gQikb1PmK7eVO76Ji2qc3_cfnkaevN9d97rKfciK0AzHhYsZozItcdaTc7leNIldoaHmshyZd7HIayv-ZnN8AkhCdwVzu1VBPY0yMxA8DcwIU2xVKvE1BVcS7MX7i_641D2oQDfSLqVla4eGuWl082B-5I2HDC-wz5yrJUf7i4Uebvenw-Mex0HZyq"
+            className="w-64 h-auto mb-6 object-contain"
+            src="/logo.png"
           />
           <h1 className="font-display-lg text-headline-lg-mobile md:text-display-lg text-on-surface tracking-tight mb-4 text-3xl md:text-5xl font-light">
             Instant developer onboarding for any GitHub repository.
