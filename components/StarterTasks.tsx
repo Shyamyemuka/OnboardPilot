@@ -9,10 +9,11 @@ interface StarterTaskItem {
 
 interface StarterTasksProps {
   tasks: StarterTaskItem[];
+  hasBlueprint?: (task: StarterTaskItem) => boolean;
   onGenerateBlueprint?: (task: StarterTaskItem) => void;
 }
 
-export default function StarterTasks({ tasks, onGenerateBlueprint }: StarterTasksProps) {
+export default function StarterTasks({ tasks, hasBlueprint, onGenerateBlueprint }: StarterTasksProps) {
   if (!tasks || tasks.length === 0) {
     return <p className="text-text-muted text-sm italic">No starter tasks suggested.</p>;
   }
@@ -50,6 +51,7 @@ export default function StarterTasks({ tasks, onGenerateBlueprint }: StarterTask
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {tasks.map((task, idx) => {
         const styles = getDifficultyStyles(task.difficulty);
+        const blueprintReady = hasBlueprint?.(task) || false;
 
         return (
           <div
@@ -105,8 +107,10 @@ export default function StarterTasks({ tasks, onGenerateBlueprint }: StarterTask
                     }}
                     className="flex items-center gap-1 text-[#574325] hover:text-primary transition-colors cursor-pointer font-bold"
                   >
-                    <span className="material-symbols-outlined text-[14px]">difference</span>
-                    Generate Blueprint
+                    <span className="material-symbols-outlined text-[14px]">
+                      {blueprintReady ? "visibility" : "difference"}
+                    </span>
+                    {blueprintReady ? "View Blueprint" : "Generate Blueprint"}
                   </button>
                 )}
               </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { GuideJSON } from "@/types";
 import DirectoryTree from "./DirectoryTree";
 import FileCard from "./FileCard";
@@ -12,11 +12,12 @@ import type { BlueprintJSON, ImportGraphNode } from "@/types";
 
 interface GuidePanelProps {
   analysis: GuideJSON;
+  sessionId?: string;
   fileContext?: Record<string, string>;
   importGraph?: ImportGraphNode[];
 }
 
-export default function GuidePanel({ analysis, fileContext = {}, importGraph = [] }: GuidePanelProps) {
+export default function GuidePanel({ analysis, sessionId, fileContext = {}, importGraph = [] }: GuidePanelProps) {
   const [sections, setSections] = useState({
     architecture: true,
     workflow: true,
@@ -30,16 +31,47 @@ export default function GuidePanel({ analysis, fileContext = {}, importGraph = [
   const [isBlueprintLoading, setIsBlueprintLoading] = useState(false);
   const [blueprintError, setBlueprintError] = useState<string | null>(null);
   const [isBlueprintOpen, setIsBlueprintOpen] = useState(false);
+  const [blueprintCache, setBlueprintCache] = useState<Record<string, BlueprintJSON>>({});
+
+  const getBlueprintStorageKey = () =>
+    sessionId ? `onboardpilot_blueprints_${sessionId}` : "";
+
+  const getTaskKey = (task: GuideJSON["starterTasks"][number]) =>
+    `${task.title}::${task.difficulty}::${task.files.join("|")}`;
+
+  useEffect(() => {
+    const storageKey = getBlueprintStorageKey();
+    if (!storageKey) return;
+
+    try {
+      const savedBlueprints = sessionStorage.getItem(storageKey);
+      if (savedBlueprints) {
+        setBlueprintCache(JSON.parse(savedBlueprints));
+      }
+    } catch (error) {
+      console.error("Failed to load cached blueprints:", error);
+    }
+  }, [sessionId]);
 
   const toggleSection = (key: keyof typeof sections) => {
     setSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const handleGenerateBlueprint = async (task: GuideJSON["starterTasks"][number]) => {
+    const taskKey = getTaskKey(task);
+    const cachedBlueprint = blueprintCache[taskKey];
+
     setIsBlueprintOpen(true);
+    setBlueprintError(null);
+
+    if (cachedBlueprint) {
+      setBlueprint(cachedBlueprint);
+      setIsBlueprintLoading(false);
+      return;
+    }
+
     setIsBlueprintLoading(true);
     setBlueprint(null);
-    setBlueprintError(null);
 
     const relevantContext = Object.fromEntries(
       task.files
@@ -63,7 +95,16 @@ export default function GuidePanel({ analysis, fileContext = {}, importGraph = [
         throw new Error(errorData.error || "Blueprint generation failed.");
       }
 
-      setBlueprint(await response.json());
+      const generatedBlueprint = await response.json();
+      const updatedCache = { ...blueprintCache, [taskKey]: generatedBlueprint };
+
+      setBlueprint(generatedBlueprint);
+      setBlueprintCache(updatedCache);
+
+      const storageKey = getBlueprintStorageKey();
+      if (storageKey) {
+        sessionStorage.setItem(storageKey, JSON.stringify(updatedCache));
+      }
     } catch (error: any) {
       setBlueprintError(error?.message || "Could not generate a blueprint for this task.");
     } finally {
@@ -260,7 +301,11 @@ export default function GuidePanel({ analysis, fileContext = {}, importGraph = [
           </h2>
           {sections.tasks && (
             <div className="transition-all">
-              <StarterTasks tasks={analysis.starterTasks} onGenerateBlueprint={handleGenerateBlueprint} />
+              <StarterTasks
+                tasks={analysis.starterTasks}
+                hasBlueprint={(task) => Boolean(blueprintCache[getTaskKey(task)])}
+                onGenerateBlueprint={handleGenerateBlueprint}
+              />
             </div>
           )}
         </div>

@@ -401,6 +401,7 @@ export default function GuidePage({ params }: PageProps) {
         {analysis && (
           <GuidePanel
             analysis={analysis}
+            sessionId={sessionId}
             fileContext={fileContext}
             importGraph={importGraph}
           />
