@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     "Enter any public GitHub repository URL to instantly generate docs, setup guides, and architectural overviews mapped to your local environment.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/logo2.png",
   },
 };
 
