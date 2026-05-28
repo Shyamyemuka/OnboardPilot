@@ -34,13 +34,13 @@ Built for the **OpenAI x Outskill AI Builders Hackathon**.
 
 ## AI Setup
 
-OpenRouter is the recommended primary provider for the hackathon demo because it can route to OpenAI models with an OpenAI-compatible API key.
+OpenRouter is the recommended primary provider for the demo. If you are using a **free OpenRouter API token** (with a $0 balance), you can route your requests through highly capable free models like Qwen 3 Coder.
 
 Use:
 
 ```env
 OPENROUTER_API_KEY=sk-or-your-openrouter-api-key
-OPENROUTER_MODEL=openai/gpt-4.1
+OPENROUTER_MODEL=qwen/qwen3-coder:free
 NEXT_PUBLIC_APP_URL=https://your-vercel-url.vercel.app
 ```
 
@@ -48,17 +48,17 @@ If `OPENROUTER_API_KEY` is not set, the app falls back to the official OpenAI AP
 
 ```env
 OPENAI_API_KEY=sk-your-openai-api-key
-OPENAI_MODEL=gpt-4.1
+OPENAI_MODEL=codex-mini-latest
 ```
 
-Because hackathon API credits can run out while testing, Gemini is included as a backup provider. If the primary request fails because of quota, billing, model access, high demand, or another API error, the server automatically retries the same analysis or chat request with Gemini.
+Because API credits can run out while testing, Gemini is included as a backup provider. If the primary request fails because of quota, billing, model access, high demand, or another API error (e.g. attempting to call a paid model with a free OpenRouter token), the server automatically retries the same analysis or chat request with Gemini.
 
 ```env
 GEMINI_API_KEY=your-gemini-api-key
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-All AI calls stay server-side in `app/api/*`. No API keys are exposed to the browser.
+All AI calls stay server-side in `app/api/*`. No API keys are exposed to the browser. Detailed logs about model routing and fallback transitions are output to the server terminal.
 
 ## Tech Stack
 
@@ -90,9 +90,9 @@ Required for AI:
 
 ```env
 OPENROUTER_API_KEY=sk-or-your-openrouter-api-key
-OPENROUTER_MODEL=openai/gpt-4.1
+OPENROUTER_MODEL=qwen/qwen3-coder:free
 OPENAI_API_KEY=sk-your-openai-api-key
-OPENAI_MODEL=gpt-4.1
+OPENAI_MODEL=codex-mini-latest
 GEMINI_API_KEY=your-gemini-api-key
 GEMINI_MODEL=gemini-2.5-flash
 NEXT_PUBLIC_APP_URL=https://your-vercel-url.vercel.app

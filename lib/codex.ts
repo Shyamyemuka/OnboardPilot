@@ -13,8 +13,8 @@ const openrouter = new OpenAI({
     "X-Title": "OnboardPilot",
   },
 });
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1";
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "openai/gpt-4.1";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "codex-mini-latest";
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "qwen/qwen3-coder:free";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 type GeminiGenerateContentResponse = {
@@ -79,6 +79,7 @@ async function callOpenAI(instructions: string, input: string): Promise<string> 
     throw new Error("OpenAI API Key is not configured on the server.");
   }
 
+  console.log(`[AI] Calling OpenAI with model: ${OPENAI_MODEL}`);
   const response = await withRetry(() =>
     openai.responses.create({
       model: OPENAI_MODEL,
@@ -92,6 +93,7 @@ async function callOpenAI(instructions: string, input: string): Promise<string> 
     throw new Error("Empty response from OpenAI API");
   }
 
+  console.log(`[AI] OpenAI request successful.`);
   return outputText;
 }
 
@@ -100,6 +102,7 @@ async function callOpenRouter(instructions: string, input: string): Promise<stri
     throw new Error("OpenRouter API Key is not configured on the server.");
   }
 
+  console.log(`[AI] Calling OpenRouter with model: ${OPENROUTER_MODEL}`);
   const response = await withRetry(() =>
     openrouter.chat.completions.create({
       model: OPENROUTER_MODEL,
@@ -115,6 +118,7 @@ async function callOpenRouter(instructions: string, input: string): Promise<stri
     throw new Error("Empty response from OpenRouter API");
   }
 
+  console.log(`[AI] OpenRouter request successful.`);
   return outputText;
 }
 
@@ -124,6 +128,7 @@ async function callGemini(instructions: string, input: string): Promise<string> 
     throw new Error("Gemini API Key is not configured on the server.");
   }
 
+  console.log(`[AI] Calling Gemini fallback with model: ${GEMINI_MODEL}`);
   const response = await withRetry(async () => {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
@@ -169,6 +174,7 @@ async function callGemini(instructions: string, input: string): Promise<string> 
     throw new Error("Empty response from Gemini API");
   }
 
+  console.log(`[AI] Gemini fallback request successful.`);
   return outputText;
 }
 
@@ -182,12 +188,14 @@ async function generateWithFallback(instructions: string, input: string): Promis
     return await callOpenAI(instructions, input);
   } catch (error) {
     primaryError = error;
-    console.warn("Primary AI provider failed; attempting Gemini fallback:", primaryError);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.warn(`[AI] Primary AI provider failed! Error: "${errorMsg}". Attempting Gemini fallback...`);
 
     try {
       return await callGemini(instructions, input);
     } catch (geminiError) {
-      console.error("Gemini fallback failed:", geminiError);
+      const geminiErrorMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
+      console.error(`[AI] Gemini fallback failed! Error: "${geminiErrorMsg}".`);
 
       if (isTemporaryProviderError(primaryError) && isTemporaryProviderError(geminiError)) {
         throw new Error("Both AI providers are temporarily busy. Please retry in a minute.");
