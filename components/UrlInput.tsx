@@ -4,7 +4,7 @@ import { useState } from "react";
 import { parseGitHubUrl } from "@/lib/utils";
 
 interface UrlInputProps {
-  onSubmit: (owner: string, repo: string, url: string) => void;
+  onSubmit: (owner: string, repo: string, url: string, prNumber?: number) => void;
 }
 
 export default function UrlInput({ onSubmit }: UrlInputProps) {
@@ -17,11 +17,11 @@ export default function UrlInput({ onSubmit }: UrlInputProps) {
 
     const parsed = parseGitHubUrl(url.trim());
     if (!parsed) {
-      setError("Please enter a valid public GitHub repository URL (e.g., https://github.com/owner/repo)");
+      setError("Please enter a valid public GitHub repository or pull request URL.");
       return;
     }
 
-    onSubmit(parsed.owner, parsed.repo, url.trim());
+    onSubmit(parsed.owner, parsed.repo, url.trim(), parsed.prNumber);
   };
 
   const handleExampleSelect = (exampleUrl: string) => {
@@ -41,7 +41,7 @@ export default function UrlInput({ onSubmit }: UrlInputProps) {
               setUrl(e.target.value);
               if (error) setError(null);
             }}
-            placeholder="https://github.com/organization/repository"
+            placeholder="https://github.com/organization/repository or /pull/123"
             className="tonal-input flex-1 bg-transparent border-none text-body-lg font-body-lg placeholder-outline-variant text-on-surface py-3 px-2 w-full focus:ring-0 focus:outline-none"
             autoComplete="off"
             spellCheck="false"
@@ -70,12 +70,12 @@ export default function UrlInput({ onSubmit }: UrlInputProps) {
         </span>
         <div className="flex flex-wrap justify-center gap-3">
           <button
-            onClick={() => handleExampleSelect("https://github.com/fastapi/fastapi")}
+            onClick={() => handleExampleSelect("https://github.com/microsoft/VibeVoice")}
             type="button"
             className="bg-surface-container text-on-surface-variant text-label-sm font-label-sm px-3 py-1.5 rounded-[2px] border border-transparent hover:border-[#A3ABC4] transition-all flex items-center gap-1.5 cursor-pointer text-xs font-medium"
           >
             <span className="material-symbols-outlined text-[14px] text-[#A3ABC4]">code</span>
-            fastapi/fastapi
+            microsoft/VibeVoice
           </button>
           <button
             onClick={() => handleExampleSelect("https://github.com/expressjs/express")}

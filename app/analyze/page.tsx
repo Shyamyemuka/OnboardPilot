@@ -3,8 +3,14 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ProgressSteps from "@/components/ProgressSteps";
-import { getFileTree, selectKeyFiles, getFileContent } from "@/lib/github";
-import { generateSessionId } from "@/lib/utils";
+import {
+  formatPullRequestDiff,
+  getFileContent,
+  getFileTree,
+  getPullRequestFiles,
+  selectKeyFiles,
+} from "@/lib/github";
+import { extractImportGraph, generateSessionId } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { saveAnalysisSession } from "@/lib/db";
 
@@ -16,6 +22,7 @@ function AnalyzeContent() {
   const owner = searchParams.get("owner") || "";
   const repo = searchParams.get("repo") || "";
   const url = searchParams.get("url") || "";
+  const prNumber = searchParams.get("pr") ? Number(searchParams.get("pr")) : undefined;
 
   const [currentStep, setCurrentStep] = useState(1);
   const [currentFile, setCurrentFile] = useState("");
@@ -42,7 +49,17 @@ function AnalyzeContent() {
         if (isCancelled) return;
         setCurrentStep(2);
         setCurrentFile("Evaluating file dependencies...");
-        const keyPaths = selectKeyFiles(fullTree);
+        let prDiff = "";
+        let prFilePaths: string[] = [];
+
+        if (prNumber) {
+          setCurrentFile(`Fetching pull request #${prNumber} diff...`);
+          const prFiles = await getPullRequestFiles(owner, repo, prNumber);
+          prDiff = formatPullRequestDiff(prFiles);
+          prFilePaths = prFiles.map((file) => file.filename);
+        }
+
+        const keyPaths = Array.from(new Set([...prFilePaths, ...selectKeyFiles(fullTree)])).slice(0, 35);
 
         // Step 3: Fetch Key File Contents
         if (isCancelled) return;
@@ -56,6 +73,12 @@ function AnalyzeContent() {
           fileContents[path] = content;
         }
 
+        if (prDiff) {
+          fileContents[`__pull_request_${prNumber}_diff__.diff`] = prDiff;
+        }
+
+        const importGraph = extractImportGraph(fileContents);
+
         // Step 4: AI analysis call
         if (isCancelled) return;
         setCurrentStep(4);
@@ -68,6 +91,7 @@ function AnalyzeContent() {
             repo,
             fileTree: fullTree,
             keyFiles: fileContents,
+            prNumber,
           }),
         });
 
@@ -88,9 +112,10 @@ function AnalyzeContent() {
         // Save in sessionStorage
         sessionStorage.setItem(`onboardpilot_analysis_${sessionId}`, JSON.stringify(guideJSON));
         sessionStorage.setItem(`onboardpilot_context_${sessionId}`, JSON.stringify(fileContents));
+        sessionStorage.setItem(`onboardpilot_graph_${sessionId}`, JSON.stringify(importGraph));
         sessionStorage.setItem(
           `onboardpilot_repo_${sessionId}`,
-          JSON.stringify({ owner, repo, url })
+          JSON.stringify({ owner, repo, url, prNumber })
         );
 
         if (user) {
@@ -117,8 +142,12 @@ function AnalyzeContent() {
           friendlyMessage = "Repository not found or is private. Make sure it's a public GitHub repo.";
         } else if (err.message === "RATE_LIMITED") {
           friendlyMessage = "GitHub API rate limit hit. Please try again in a few minutes or configure GITHUB_PAT.";
+        } else if (err.message === "PR_NOT_FOUND") {
+          friendlyMessage = "Pull request not found. Check that the PR URL is public and still exists.";
         } else if (err.message === "GITHUB_ERROR") {
           friendlyMessage = "Failed to communicate with GitHub. Check your network or repository name.";
+        } else if (err.message?.includes("Both AI providers are temporarily busy")) {
+          friendlyMessage = "Both AI providers are temporarily busy. Please retry in a minute.";
         } else if (err.message) {
           friendlyMessage = err.message;
         }
@@ -149,7 +178,7 @@ function AnalyzeContent() {
             Analysis Blocked
           </h1>
           <p className="font-body-lg text-text-muted text-sm max-w-md leading-relaxed">
-            We ran into an issue parsing the codebase repository.
+            We ran into an issue while preparing this onboarding run.
           </p>
         </header>
 
@@ -181,7 +210,7 @@ function AnalyzeContent() {
           Analyzing Repository
         </h1>
         <p className="font-body-lg text-body-lg text-on-surface-variant max-w-md text-sm md:text-base leading-relaxed">
-          Please wait while OpenAI maps your project architecture and generates comprehensive documentation.
+          Please wait while OpenAI maps your project architecture and prepares the onboarding workspace.
         </p>
       </header>
 

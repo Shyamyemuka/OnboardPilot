@@ -37,7 +37,7 @@ Return this exact JSON structure:
       "description": "Specific description of what to do and why it's a good starting point"
     }
   ],
-  "mermaidFlowchart": "A valid, complete Mermaid.js flowchart (starting with 'graph TD') mapping the high-level request lifecycle or module execution flow in the codebase. Use concise, descriptive nodes and clean connectors. Keep it robust and compile-safe (avoid illegal special characters in node labels)."
+  "mermaidFlowchart": "A valid, complete Mermaid.js flowchart (starting with 'graph TD') mapping the high-level request lifecycle or module execution flow in the codebase. Always quote node labels like A[\"Load Config\"] and avoid parentheses, ampersands, angle brackets, braces, semicolons, and markdown inside labels."
 }
 `.trim();
 
@@ -51,4 +51,32 @@ Answer questions about this codebase clearly and concisely.
 - Reference specific file paths when relevant.
 - If asked about something not covered in the analysis, say so honestly.
 - Keep answers focused and practical for a new contributor.
+`.trim();
+
+export const BLUEPRINT_SYSTEM_PROMPT = `
+You are a senior engineer creating a safe, educational "Code Change Blueprint" for a new contributor.
+
+You will receive:
+1. A starter task
+2. The relevant source files
+
+Return ONLY valid JSON. No markdown fences. No preamble. No trailing text.
+
+Create a mock pull-request plan, not a risky production patch. Keep changes small, plausible, and easy to review.
+Each modified snippet should include short inline comments explaining why the change is made.
+
+Return this exact JSON structure:
+{
+  "title": "string",
+  "summary": "2-3 sentence explanation of the proposed change",
+  "checklist": ["step to edit or verify"],
+  "changes": [
+    {
+      "path": "path/to/file",
+      "explanation": "why this file changes",
+      "original": "short original code excerpt",
+      "modified": "short modified code excerpt with inline comments"
+    }
+  ]
+}
 `.trim();

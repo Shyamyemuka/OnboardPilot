@@ -15,6 +15,25 @@ export interface GuideJSON {
   mermaidFlowchart: string;
 }
 
+export interface ImportGraphNode {
+  path: string;
+  imports: string[];
+}
+
+export interface BlueprintChange {
+  path: string;
+  explanation: string;
+  original: string;
+  modified: string;
+}
+
+export interface BlueprintJSON {
+  title: string;
+  summary: string;
+  checklist: string[];
+  changes: BlueprintChange[];
+}
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;

@@ -9,31 +9,32 @@ export default function LandingPage() {
   const router = useRouter();
   const { user, loading, signInWithGitHub, logOut } = useAuth();
 
-  const [pendingScan, setPendingScan] = useState<{ owner: string; repo: string; url: string } | null>(null);
+  const [pendingScan, setPendingScan] = useState<{ owner: string; repo: string; url: string; prNumber?: number } | null>(null);
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
-  const handleUrlSubmit = (owner: string, repo: string, url: string) => {
+  const handleUrlSubmit = (owner: string, repo: string, url: string, prNumber?: number) => {
     if (!user) {
       // User is not signed in -> show the soft warning popup/modal
-      setPendingScan({ owner, repo, url });
+      setPendingScan({ owner, repo, url, prNumber });
       setShowWarningModal(true);
       return;
     }
 
     // User is signed in -> proceed straight to analysis
-    proceedToAnalysis(owner, repo, url);
+    proceedToAnalysis(owner, repo, url, prNumber);
   };
 
-  const proceedToAnalysis = (owner: string, repo: string, url: string) => {
+  const proceedToAnalysis = (owner: string, repo: string, url: string, prNumber?: number) => {
+    const prParam = prNumber ? `&pr=${encodeURIComponent(String(prNumber))}` : "";
     router.push(
-      `/analyze?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&url=${encodeURIComponent(url)}`
+      `/analyze?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&url=${encodeURIComponent(url)}${prParam}`
     );
   };
 
   const handleContinueAsGuest = () => {
     if (pendingScan) {
-      proceedToAnalysis(pendingScan.owner, pendingScan.repo, pendingScan.url);
+      proceedToAnalysis(pendingScan.owner, pendingScan.repo, pendingScan.url, pendingScan.prNumber);
     }
     setShowWarningModal(false);
   };
@@ -47,7 +48,7 @@ export default function LandingPage() {
       // To ensure they proceed directly, we will let them sign in, and then proceed
       // once authenticated. We can redirect them immediately with the pending scan params.
       if (pendingScan) {
-        proceedToAnalysis(pendingScan.owner, pendingScan.repo, pendingScan.url);
+        proceedToAnalysis(pendingScan.owner, pendingScan.repo, pendingScan.url, pendingScan.prNumber);
       }
     } catch (err) {
       console.error(err);

@@ -9,9 +9,10 @@ interface StarterTaskItem {
 
 interface StarterTasksProps {
   tasks: StarterTaskItem[];
+  onGenerateBlueprint?: (task: StarterTaskItem) => void;
 }
 
-export default function StarterTasks({ tasks }: StarterTasksProps) {
+export default function StarterTasks({ tasks, onGenerateBlueprint }: StarterTasksProps) {
   if (!tasks || tasks.length === 0) {
     return <p className="text-text-muted text-sm italic">No starter tasks suggested.</p>;
   }
@@ -90,9 +91,24 @@ export default function StarterTasks({ tasks }: StarterTasksProps) {
                 </div>
               )}
 
-              <div className="flex items-center gap-2 text-xs font-semibold text-text-muted mt-auto pt-2 border-t border-surface-variant/40">
-                <span className="material-symbols-outlined text-[14px]">schedule</span>
-                {styles.hours}
+              <div className="flex items-center justify-between gap-2 text-xs font-semibold text-text-muted mt-auto pt-2 border-t border-surface-variant/40">
+                <span className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">schedule</span>
+                  {styles.hours}
+                </span>
+                {onGenerateBlueprint && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onGenerateBlueprint(task);
+                    }}
+                    className="flex items-center gap-1 text-[#574325] hover:text-primary transition-colors cursor-pointer font-bold"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">difference</span>
+                    Generate Blueprint
+                  </button>
+                )}
               </div>
             </div>
           </div>

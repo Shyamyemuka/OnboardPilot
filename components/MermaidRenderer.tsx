@@ -6,6 +6,44 @@ interface MermaidRendererProps {
   chart: string;
 }
 
+function cleanMermaidLabel(label: string): string {
+  return label
+    .replace(/["`]/g, "'")
+    .replace(/[()]/g, "")
+    .replace(/&/g, "and")
+    .replace(/[{}<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function sanitizeMermaidChart(chart: string): string {
+  return chart
+    .replace(/^```mermaid\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .split("\n")
+    .map((line) => {
+      const withoutSemicolon = line.replace(/;\s*$/, "");
+      return withoutSemicolon.replace(
+        /([A-Za-z][A-Za-z0-9_-]*)\[([^\]\n]+)\]/g,
+        (_match, id: string, label: string) => `${id}["${cleanMermaidLabel(label)}"]`
+      );
+    })
+    .join("\n")
+    .trim();
+}
+
+function removeMermaidErrorArtifacts() {
+  document
+    .querySelectorAll("body > svg[id^='mermaid-'], body > div[id^='dmermaid'], body > .mermaid")
+    .forEach((element) => {
+      const text = element.textContent || "";
+      if (text.includes("Syntax error in text") || text.includes("mermaid version")) {
+        element.remove();
+      }
+    });
+}
+
 export default function MermaidRenderer({ chart }: MermaidRendererProps) {
   const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +54,11 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
 
     async function loadAndRender() {
       try {
+        setSvg(null);
         setError(null);
+        removeMermaidErrorArtifacts();
+
+        const safeChart = sanitizeMermaidChart(chart);
         // Dynamically import mermaid to keep initial bundle sizes low
         const mermaid = (await import("mermaid")).default;
         
@@ -30,13 +72,15 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
         const id = `mermaid-svg-${Math.random().toString(36).substr(2, 9)}`;
         
         // Render the diagram
-        const { svg: renderedSvg } = await mermaid.render(id, chart.trim());
+        const { svg: renderedSvg } = await mermaid.render(id, safeChart);
+        removeMermaidErrorArtifacts();
         
         if (isMounted) {
           setSvg(renderedSvg);
         }
       } catch (err: any) {
         console.error("Mermaid parsing error:", err);
+        removeMermaidErrorArtifacts();
         if (isMounted) {
           setError(
             "Could not render the visual workflow due to a diagram syntax error. Here is the raw diagram instead:"
@@ -49,6 +93,7 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
 
     return () => {
       isMounted = false;
+      removeMermaidErrorArtifacts();
     };
   }, [chart]);
 
@@ -60,7 +105,7 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
           <span className="font-semibold text-body-md">{error}</span>
         </div>
         <pre className="p-4 rounded-lg bg-surface-container-high text-label-sm font-mono overflow-auto max-h-[300px] border border-outline-variant">
-          {chart}
+          {sanitizeMermaidChart(chart)}
         </pre>
       </div>
     );

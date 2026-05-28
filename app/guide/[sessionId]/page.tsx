@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import type { GuideJSON, ChatMessage } from "@/types";
+import type { GuideJSON, ChatMessage, ImportGraphNode } from "@/types";
 import GuidePanel from "@/components/GuidePanel";
 import ChatPanel from "@/components/ChatPanel";
 import { useAuth } from "@/context/AuthContext";
@@ -20,6 +20,8 @@ export default function GuidePage({ params }: PageProps) {
   const [analysis, setAnalysis] = useState<GuideJSON | null>(null);
   const [analysisJSON, setAnalysisJSON] = useState<string>("");
   const [repoInfo, setRepoInfo] = useState<{ owner: string; repo: string; url: string } | null>(null);
+  const [fileContext, setFileContext] = useState<Record<string, string>>({});
+  const [importGraph, setImportGraph] = useState<ImportGraphNode[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [previousSessions, setPreviousSessions] = useState<SessionDocument[]>([]);
 
@@ -47,12 +49,18 @@ export default function GuidePage({ params }: PageProps) {
             url: firestoreSession.repoUrl,
           });
           setMessages(firestoreSession.messages || []);
+          const savedContext = sessionStorage.getItem(`onboardpilot_context_${sessionId}`);
+          const savedGraph = sessionStorage.getItem(`onboardpilot_graph_${sessionId}`);
+          if (savedContext) setFileContext(JSON.parse(savedContext));
+          if (savedGraph) setImportGraph(JSON.parse(savedGraph));
           setIsHydrating(false);
           return;
         }
 
         // If Firestore session doesn't exist, check local sessionStorage fallback
         const savedAnalysis = sessionStorage.getItem(`onboardpilot_analysis_${sessionId}`);
+        const savedContext = sessionStorage.getItem(`onboardpilot_context_${sessionId}`);
+        const savedGraph = sessionStorage.getItem(`onboardpilot_graph_${sessionId}`);
         const savedRepo = sessionStorage.getItem(`onboardpilot_repo_${sessionId}`);
 
         if (savedAnalysis && savedRepo) {
@@ -61,6 +69,8 @@ export default function GuidePage({ params }: PageProps) {
 
           setAnalysis(parsedAnalysis);
           setAnalysisJSON(savedAnalysis);
+          if (savedContext) setFileContext(JSON.parse(savedContext));
+          if (savedGraph) setImportGraph(JSON.parse(savedGraph));
           setRepoInfo(parsedRepo);
           setMessages([
             {
@@ -388,7 +398,13 @@ export default function GuidePage({ params }: PageProps) {
         )}
 
         {/* Main Guide documentation */}
-        {analysis && <GuidePanel analysis={analysis} />}
+        {analysis && (
+          <GuidePanel
+            analysis={analysis}
+            fileContext={fileContext}
+            importGraph={importGraph}
+          />
+        )}
 
         {/* Right Copilot Chat Drawer */}
         {analysis && (

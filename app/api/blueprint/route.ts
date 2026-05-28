@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { chatWithRepo } from "@/lib/codex";
+import { generateBlueprint } from "@/lib/codex";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { messages, repoName, analysisJSON } = body;
+    const { task, fileContext } = body;
 
-    if (!messages || !Array.isArray(messages) || !repoName || !analysisJSON) {
+    if (!task || !fileContext || typeof fileContext !== "object") {
       return NextResponse.json(
-        { error: "Missing required parameters: messages, repoName, analysisJSON" },
+        { error: "Missing required parameters: task, fileContext" },
         { status: 400 }
       );
     }
@@ -20,12 +20,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const reply = await chatWithRepo(messages, repoName, analysisJSON);
-    return NextResponse.json({ reply });
+    const blueprint = await generateBlueprint(task, fileContext);
+    return NextResponse.json(blueprint);
   } catch (error: any) {
-    console.error("Error in /api/chat:", error);
+    console.error("Error in /api/blueprint:", error);
     return NextResponse.json(
-      { error: error?.message || "Internal server error during chat interaction" },
+      { error: error?.message || "Internal server error during blueprint generation" },
       { status: 500 }
     );
   }

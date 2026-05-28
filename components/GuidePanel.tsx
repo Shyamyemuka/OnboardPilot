@@ -6,23 +6,69 @@ import DirectoryTree from "./DirectoryTree";
 import FileCard from "./FileCard";
 import StarterTasks from "./StarterTasks";
 import MermaidRenderer from "./MermaidRenderer";
+import DependencyGraph from "./DependencyGraph";
+import BlueprintModal from "./BlueprintModal";
+import type { BlueprintJSON, ImportGraphNode } from "@/types";
 
 interface GuidePanelProps {
   analysis: GuideJSON;
+  fileContext?: Record<string, string>;
+  importGraph?: ImportGraphNode[];
 }
 
-export default function GuidePanel({ analysis }: GuidePanelProps) {
+export default function GuidePanel({ analysis, fileContext = {}, importGraph = [] }: GuidePanelProps) {
   const [sections, setSections] = useState({
     architecture: true,
     workflow: true,
+    dependencies: true,
     directory: true,
     keyFiles: true,
     modules: true,
     tasks: true,
   });
+  const [blueprint, setBlueprint] = useState<BlueprintJSON | null>(null);
+  const [isBlueprintLoading, setIsBlueprintLoading] = useState(false);
+  const [blueprintError, setBlueprintError] = useState<string | null>(null);
+  const [isBlueprintOpen, setIsBlueprintOpen] = useState(false);
 
   const toggleSection = (key: keyof typeof sections) => {
     setSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleGenerateBlueprint = async (task: GuideJSON["starterTasks"][number]) => {
+    setIsBlueprintOpen(true);
+    setIsBlueprintLoading(true);
+    setBlueprint(null);
+    setBlueprintError(null);
+
+    const relevantContext = Object.fromEntries(
+      task.files
+        .map((path) => [path, fileContext[path]])
+        .filter(([, content]) => Boolean(content))
+    );
+
+    try {
+      if (Object.keys(relevantContext).length === 0) {
+        throw new Error("No source snippets are available for this task in the current session.");
+      }
+
+      const response = await fetch("/api/blueprint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task, fileContext: relevantContext }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Blueprint generation failed.");
+      }
+
+      setBlueprint(await response.json());
+    } catch (error: any) {
+      setBlueprintError(error?.message || "Could not generate a blueprint for this task.");
+    } finally {
+      setIsBlueprintLoading(false);
+    }
   };
 
   return (
@@ -86,6 +132,25 @@ export default function GuidePanel({ analysis }: GuidePanelProps) {
             )}
           </div>
         )}
+
+        {/* Section: Dependency Graph */}
+        <div className="mb-10 border-b border-surface-variant/40 pb-6">
+          <h2
+            onClick={() => toggleSection("dependencies")}
+            className="text-headline-md font-headline-md mb-4 flex items-center gap-2.5 cursor-pointer hover:text-[#DEC29A] transition-colors select-none font-semibold text-on-surface"
+          >
+            <span className="material-symbols-outlined text-[20px] text-[#A3ABC4]">hub</span>
+            Dependency Graph
+            <span className="material-symbols-outlined text-[18px] ml-auto text-text-muted">
+              {sections.dependencies ? "expand_less" : "expand_more"}
+            </span>
+          </h2>
+          {sections.dependencies && (
+            <div className="transition-all">
+              <DependencyGraph graph={importGraph} />
+            </div>
+          )}
+        </div>
 
         {/* Section: Directory Breakdown */}
         <div className="mb-10 border-b border-surface-variant/40 pb-6">
@@ -195,11 +260,20 @@ export default function GuidePanel({ analysis }: GuidePanelProps) {
           </h2>
           {sections.tasks && (
             <div className="transition-all">
-              <StarterTasks tasks={analysis.starterTasks} />
+              <StarterTasks tasks={analysis.starterTasks} onGenerateBlueprint={handleGenerateBlueprint} />
             </div>
           )}
         </div>
       </div>
+
+      {isBlueprintOpen && (
+        <BlueprintModal
+          blueprint={blueprint}
+          isLoading={isBlueprintLoading}
+          error={blueprintError}
+          onClose={() => setIsBlueprintOpen(false)}
+        />
+      )}
     </section>
   );
 }

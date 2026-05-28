@@ -4,7 +4,7 @@ import { analyzeRepo } from "@/lib/codex";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { owner, repo, fileTree, keyFiles } = body;
+    const { owner, repo, fileTree, keyFiles, prNumber } = body;
 
     if (!owner || !repo || !fileTree || !keyFiles) {
       return NextResponse.json(
@@ -13,14 +13,14 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY) {
+    if (!process.env.OPENROUTER_API_KEY && !process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY) {
       return NextResponse.json(
-        { error: "No AI API key is configured on the server. Set OPENAI_API_KEY or GEMINI_API_KEY." },
+        { error: "No AI API key is configured on the server. Set OPENROUTER_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY." },
         { status: 500 }
       );
     }
 
-    const analysis = await analyzeRepo(fileTree, keyFiles);
+    const analysis = await analyzeRepo(fileTree, keyFiles, prNumber);
     return NextResponse.json(analysis);
   } catch (error: any) {
     console.error("Error in /api/analyze:", error);
