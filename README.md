@@ -1,127 +1,118 @@
 # OnboardPilot
 
-**The day you join a new codebase is the loneliest day in software engineering. OnboardPilot fixes that.**
+**AI-powered onboarding guides for unfamiliar GitHub repositories.**
 
-OnboardPilot takes any public GitHub repository URL and generates a personalized developer onboarding guide — architecture breakdown, annotated key files, core module explanations, and suggested first tasks — powered by OpenAI Codex. Then lets you chat with it.
+OnboardPilot turns a public GitHub repo URL into a structured developer onboarding workspace: architecture summary, important folders, must-read files, core modules, a visual workflow, starter tasks, and a chat panel for follow-up questions.
 
-Built for the **OpenAI x Outskill AI Builders Hackathon** (May 2026).
+Built for the **OpenAI x Outskill AI Builders Hackathon**.
 
----
+## Demo Flow
 
-## What It Does
+1. Paste a public GitHub repository URL.
+2. OnboardPilot fetches the repo tree and selects the most useful files.
+3. OpenAI analyzes the codebase and returns a structured onboarding guide.
+4. The app renders a clean developer workspace with diagrams, file notes, and starter tasks.
+5. Ask questions in the built-in copilot chat.
+6. Sign in with GitHub to save scan history, or continue as a guest with browser session storage.
 
-Paste a GitHub URL. Get back:
+## What It Shows
 
-- **Architecture Overview** — plain-English summary of what the project is and how it's structured
-- **Annotated Directory Breakdown** — every important folder explained in one line
-- **Key Files** — the files you actually need to read first, and why
-- **Core Modules** — grouped by concern (auth, routing, data layer, utils...)
-- **Suggested First Tasks** — beginner-tagged starting points with relevant files linked
-- **Q&A Chat** — ask any follow-up question about the codebase, answered using the full repo context
+- **Architecture overview**: plain-English explanation of how the repo is organized.
+- **Visual workflow**: Mermaid diagram generated from the codebase.
+- **Directory breakdown**: important folders explained in context.
+- **Key files**: the files a new contributor should read first.
+- **Core modules**: major parts of the system grouped by responsibility.
+- **Starter tasks**: beginner-friendly tasks with relevant files attached.
+- **Copilot chat**: follow-up Q&A grounded in the generated guide.
+- **Markdown export**: download the onboarding guide as a `.md` file.
+- **Optional saved history**: GitHub sign-in stores previous scans in Firebase.
 
----
+## AI Setup
+
+OpenAI is the primary AI provider.
+
+The app uses the OpenAI Responses API with:
+
+```env
+OPENAI_API_KEY=sk-your-openai-api-key
+OPENAI_MODEL=gpt-4.1
+```
+
+Because hackathon API credits can run out while testing, Gemini is included as a backup provider. If the OpenAI request fails because of quota, billing, model access, or another API error, the server automatically retries the same analysis or chat request with Gemini.
+
+```env
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+All AI calls stay server-side in `app/api/*`. No API keys are exposed to the browser.
 
 ## Tech Stack
 
-- **Next.js 15.3.2** — App Router, API routes
+- **Next.js 15.3.8** with App Router
 - **TypeScript 5.8**
-- **OpenAI Codex** (`codex-mini-latest`) — core intelligence
-- **GitHub REST API v3** — repo fetching
 - **Tailwind CSS 4.1**
-- **Vercel** — deployment
+- **OpenAI Responses API** as the primary AI provider
+- **Gemini API** as the fallback AI provider
+- **GitHub REST API** for public repository ingestion
+- **Mermaid** for generated workflow diagrams
+- **Firebase Auth + Firestore** for optional saved scan history
+- **Vercel** for deployment
 
----
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20+
-- pnpm 9+
-- OpenAI API key with Codex access
-
-### Setup
+## Local Setup
 
 ```bash
-# Clone the repo
-git clone https://github.com/your-username/onboardpilot
-cd onboardpilot
-
-# Install dependencies
-pnpm install
-
-# Set up environment variables
+git clone https://github.com/Shyamyemuka/OnboardPilot.git
+cd OnboardPilot
+npm install
 cp .env.example .env.local
-# Add your OPENAI_API_KEY to .env.local
-
-# Start development server
-pnpm dev
+npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Environment Variables
+## Environment Variables
+
+Required for AI:
 
 ```env
-# Required
-OPENAI_API_KEY=sk-...
-
-# Optional — increases GitHub API rate limit from 60 to 5000 req/hr
-GITHUB_PAT=ghp_...
+OPENAI_API_KEY=sk-your-openai-api-key
+OPENAI_MODEL=gpt-4.1
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
----
+Optional for higher GitHub API limits:
 
-## Usage
-
-1. Go to the app
-2. Paste any public GitHub repository URL (e.g., `https://github.com/fastapi/fastapi`)
-3. Wait ~30–45 seconds for Codex to analyze the codebase
-4. Read your custom onboarding guide
-5. Ask follow-up questions in the chat panel
-
----
-
-## Project Structure
-
-```
-onboardpilot/
-├── app/
-│   ├── page.tsx                  # Landing page
-│   ├── analyze/page.tsx          # Analysis loading + pipeline
-│   ├── guide/[sessionId]/        # Guide + chat
-│   └── api/
-│       ├── analyze/route.ts      # Codex analysis endpoint
-│       └── chat/route.ts         # Codex Q&A endpoint
-├── components/                   # UI components
-├── lib/
-│   ├── github.ts                 # GitHub API helpers
-│   ├── codex.ts                  # Codex API helpers
-│   ├── prompts.ts                # System prompts
-│   └── utils.ts                  # Utilities
-└── types/index.ts                # TypeScript types
+```env
+GITHUB_PAT=ghp_your_github_personal_access_token
 ```
 
----
+Optional for saved scan history:
 
-## Deploy to Vercel
-
-```bash
-pnpm build       # Verify build locally first
-vercel deploy    # Or push to GitHub and connect in Vercel dashboard
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=your-firebase-api-key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
 ```
 
-Add `OPENAI_API_KEY` in Vercel → Project Settings → Environment Variables.
+## Deploying to Vercel
 
----
+1. Push the repo to GitHub.
+2. Import the project into Vercel.
+3. Add the environment variables listed above in Vercel Project Settings.
+4. Deploy.
 
-## Limitations (v1)
+For the hackathon demo, the minimum required variables are `OPENAI_API_KEY`, `OPENAI_MODEL`, `GEMINI_API_KEY`, and `GEMINI_MODEL`.
 
-- Public repositories only (no private repo support)
-- Very large repos (10,000+ files) are analyzed using a prioritized subset of ~35 key files
-- No persistent history — sessions are browser-scoped
+## Current Limits
 
----
+- Public GitHub repositories only.
+- Large repos are analyzed through a prioritized subset of key files.
+- Guest sessions stay in the browser. Sign in with GitHub to save scan history.
 
 ## License
 
