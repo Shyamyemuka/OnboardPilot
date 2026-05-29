@@ -82,7 +82,7 @@ function AnalyzeContent() {
         // Step 4: AI analysis call
         if (isCancelled) return;
         setCurrentStep(4);
-        setCurrentFile("Communicating with OpenAI...");
+        setCurrentFile("Initiating analysis...");
         const analyzeRes = await fetch("/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -100,7 +100,43 @@ function AnalyzeContent() {
           throw new Error(errData.error || "AI analysis failed.");
         }
 
-        const guideJSON = await analyzeRes.json();
+        const reader = analyzeRes.body?.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let guideJSON: any = null;
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || ""; // keep partial line in buffer
+
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              try {
+                const chunk = JSON.parse(line);
+                if (chunk.type === "status") {
+                  setCurrentFile(chunk.message);
+                } else if (chunk.type === "result") {
+                  guideJSON = chunk.data;
+                } else if (chunk.type === "error") {
+                  throw new Error(chunk.error);
+                }
+              } catch (err: any) {
+                console.error("Failed to parse chunk:", err);
+                if (err.message && !err.message.includes("Unexpected end of JSON")) {
+                  throw err;
+                }
+              }
+            }
+          }
+        }
+
+        if (!guideJSON) {
+          throw new Error("No analysis result received from server.");
+        }
 
         // Step 5: Save & Navigate
         if (isCancelled) return;
@@ -118,18 +154,16 @@ function AnalyzeContent() {
           JSON.stringify({ owner, repo, url, prNumber })
         );
 
-        if (user) {
-          try {
-            await saveAnalysisSession(
-              sessionId,
-              user.uid,
-              { owner, repo, url },
-              guideJSON,
-              []
-            );
-          } catch (dbErr) {
-            console.error("Failed to persist session to Firestore:", dbErr);
-          }
+        try {
+          await saveAnalysisSession(
+            sessionId,
+            user ? user.uid : "guest",
+            { owner, repo, url },
+            guideJSON,
+            []
+          );
+        } catch (dbErr) {
+          console.error("Failed to persist session to Firestore:", dbErr);
         }
 
         router.push(`/guide/${sessionId}`);

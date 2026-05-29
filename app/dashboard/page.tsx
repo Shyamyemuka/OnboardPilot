@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getUserSessions, type SessionDocument } from "@/lib/db";
+import type { SessionDocument } from "@/lib/db";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -23,8 +23,9 @@ export default function DashboardPage() {
     async function loadSessions() {
       if (!user) return;
       try {
-        const userSessions = await getUserSessions(user.uid);
-        setSessions(userSessions);
+        const res = await fetch(`/api/db?uid=${encodeURIComponent(user.uid)}`);
+        const data = await res.json();
+        setSessions(data.sessions || []);
       } catch (err) {
         console.error("Error loading dashboard sessions:", err);
       } finally {
@@ -166,9 +167,12 @@ export default function DashboardPage() {
       <footer className="w-full flex flex-col md:flex-row justify-between items-center py-6 px-4 md:px-16 max-w-7xl mx-auto border-t border-surface-variant bg-surface-container-lowest text-on-surface-variant text-label-sm font-label-sm text-xs font-medium select-none mt-auto">
         <div>© 2026 OnboardPilot. Built for engineers.</div>
         <div className="flex gap-6 mt-4 md:mt-0">
-          <a className="hover:text-on-surface transition-colors cursor-pointer">Privacy</a>
-          <a className="hover:text-on-surface transition-colors cursor-pointer">Terms</a>
-          <a className="hover:text-on-surface transition-colors cursor-pointer">Changelog</a>
+          <a
+            onClick={() => router.push("/how-it-works")}
+            className="hover:text-on-surface transition-colors cursor-pointer font-bold text-[#DEC29A] hover:underline"
+          >
+            How it works
+          </a>
         </div>
       </footer>
 

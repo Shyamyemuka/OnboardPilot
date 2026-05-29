@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { analyzeRepo } from "@/lib/codex";
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
@@ -20,8 +20,34 @@ export async function POST(req: Request) {
       );
     }
 
-    const analysis = await analyzeRepo(fileTree, keyFiles, prNumber);
-    return NextResponse.json(analysis);
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const send = (data: any) => {
+          controller.enqueue(encoder.encode(JSON.stringify(data) + "\n"));
+        };
+
+        try {
+          const analysis = await analyzeRepo(fileTree, keyFiles, prNumber, (statusMessage) => {
+            send({ type: "status", message: statusMessage });
+          });
+          send({ type: "result", data: analysis });
+        } catch (error: any) {
+          console.error("Error inside analyzeRepo stream start:", error);
+          send({ type: "error", error: error?.message || "Analysis failed" });
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "application/x-ndjson",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      },
+    });
   } catch (error: any) {
     console.error("Error in /api/analyze:", error);
     return NextResponse.json(

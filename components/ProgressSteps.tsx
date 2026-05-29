@@ -47,6 +47,11 @@ export default function ProgressSteps({ currentStep, currentFile, onCancel }: Pr
           const isActive = currentStep === step.number;
           const isPending = currentStep < step.number;
 
+          const isStep4ActiveWithModel = step.number === 4 && isActive && currentFile && !currentFile.includes("Initiating");
+          const stepLabel = isStep4ActiveWithModel
+            ? `Codex is analyzing (${currentFile})`
+            : step.label;
+
           return (
             <div
               key={step.number}
@@ -91,12 +96,12 @@ export default function ProgressSteps({ currentStep, currentFile, onCancel }: Pr
                       : "text-on-surface-variant"
                   }`}
                 >
-                  {step.label}
+                  {stepLabel}
                   {isActive && dots}
                 </span>
 
                 {/* Subtext info for Active modules */}
-                {isActive && currentFile && (
+                {isActive && currentFile && !isStep4ActiveWithModel && (
                   <div className="mt-2">
                     <span className="font-mono-code text-mono-code text-text-muted text-xs bg-surface-container-low px-2 py-1 rounded inline-block">
                       {currentFile}

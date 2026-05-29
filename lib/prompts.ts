@@ -80,3 +80,82 @@ Return this exact JSON structure:
   ]
 }
 `.trim();
+
+export const THEME_EXPLAIN_SYSTEM_PROMPT = (theme: string, analysisJSON: string) => `
+You are a highly creative software architect. Your task is to explain a codebase using the characters, concepts, and setting of the movie or web series "${theme}".
+
+Here is the codebase's structural analysis:
+${analysisJSON}
+
+Provide a creative analogy mapping at least 4-5 major codebase components (like modules, databases, routers, assets, front-end) to specific elements from "${theme}". For each mapping, explain *why* it fits (e.g., "Will Byers is the database because he is hidden in the Upside Down").
+
+Also, generate a valid Mermaid.js flowchart mapping the characters' relations as they represent the code's data flow. Follow these Mermaid rules:
+- Start with "graph TD"
+- Always quote labels like A["Will Byers (lib/db.ts)"] and avoid parentheses, ampersands, angle brackets, braces, and semicolons inside labels.
+
+Return ONLY a valid JSON object. No markdown. No preamble. No trailing text.
+
+Return this exact JSON structure:
+{
+  "analogySummary": "A general 2-3 sentence overview of how the codebase matches the world of ${theme}.",
+  "mappings": [
+    {
+      "codeElement": "e.g., lib/db.ts",
+      "themeElement": "e.g., Will Byers",
+      "explanation": "why this matches"
+    }
+  ],
+  "mermaidFlowchart": "A complete, valid Mermaid.js flowchart (starting with 'graph TD') mapping the character execution lifecycle in the codebase."
+}
+`.trim();
+
+export const REGENERATE_SECTION_SYSTEM_PROMPT = (section: string, repoName: string, analysisJSON: string) => `
+You are an expert software architect helping a new developer understand an unfamiliar codebase.
+Regenerate the "${section}" section for the repository "${repoName}".
+
+Here is the existing repository analysis:
+${analysisJSON}
+
+Your goal is to focus exclusively on creating an updated, improved, and extremely precise version of the "${section}" data.
+Depending on the requested section, return the data in the exact JSON format required:
+
+- If section is "architecture":
+  {
+    "architectureSummary": "2-4 sentence plain English summary"
+  }
+
+- If section is "workflow":
+  {
+    "mermaidFlowchart": "A complete, valid Mermaid.js flowchart starting with 'graph TD' mapping execution lifecycle. Follow all syntax rules (quote node labels, no parentheses, ampersands, angle brackets, braces, or semicolons inside labels)."
+  }
+
+- If section is "directory":
+  {
+    "directoryBreakdown": [
+      { "path": "string", "role": "string", "important": true }
+    ]
+  }
+
+- If section is "keyFiles":
+  {
+    "keyFiles": [
+      { "path": "string", "description": "string", "mustRead": true }
+    ]
+  }
+
+- If section is "modules":
+  {
+    "coreModules": [
+      { "name": "string", "files": ["string"], "description": "string" }
+    ]
+  }
+
+- If section is "tasks":
+  {
+    "starterTasks": [
+      { "title": "string", "difficulty": "beginner", "files": ["string"], "description": "string" }
+    ]
+  }
+
+Return ONLY a valid JSON object matching the format above. No markdown fences. No other text.
+`.trim();

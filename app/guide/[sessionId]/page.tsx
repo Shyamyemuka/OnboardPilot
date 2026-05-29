@@ -6,7 +6,7 @@ import type { GuideJSON, ChatMessage, ImportGraphNode } from "@/types";
 import GuidePanel from "@/components/GuidePanel";
 import ChatPanel from "@/components/ChatPanel";
 import { useAuth } from "@/context/AuthContext";
-import { getSessionData, saveAnalysisSession, updateSessionMessages, getUserSessions, type SessionDocument } from "@/lib/db";
+import type { SessionDocument } from "@/lib/db";
 
 interface PageProps {
   params: Promise<{ sessionId: string }>;
@@ -28,6 +28,7 @@ export default function GuidePage({ params }: PageProps) {
   const [error, setError] = useState<string | null>(null);
   const [isHydrating, setIsHydrating] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [themeData, setThemeData] = useState<any>(null);
 
   // 1. Core Session Hydration Logic (Firestore vs SessionStorage)
   useEffect(() => {
@@ -37,8 +38,10 @@ export default function GuidePage({ params }: PageProps) {
 
     async function hydrateSession() {
       try {
-        // Try fetching from Firestore first
-        const firestoreSession = await getSessionData(sessionId);
+        // Try fetching from Firestore first via serverless backend API
+        const dbRes = await fetch(`/api/db?sessionId=${encodeURIComponent(sessionId)}`);
+        const dbData = await dbRes.json();
+        const firestoreSession = dbData.session;
 
         if (firestoreSession) {
           setAnalysis(firestoreSession.analysis);
@@ -49,6 +52,9 @@ export default function GuidePage({ params }: PageProps) {
             url: firestoreSession.repoUrl,
           });
           setMessages(firestoreSession.messages || []);
+          if (firestoreSession.themeData) {
+            setThemeData(firestoreSession.themeData);
+          }
           const savedContext = sessionStorage.getItem(`onboardpilot_context_${sessionId}`);
           const savedGraph = sessionStorage.getItem(`onboardpilot_graph_${sessionId}`);
           if (savedContext) setFileContext(JSON.parse(savedContext));
@@ -62,6 +68,7 @@ export default function GuidePage({ params }: PageProps) {
         const savedContext = sessionStorage.getItem(`onboardpilot_context_${sessionId}`);
         const savedGraph = sessionStorage.getItem(`onboardpilot_graph_${sessionId}`);
         const savedRepo = sessionStorage.getItem(`onboardpilot_repo_${sessionId}`);
+        const savedTheme = sessionStorage.getItem(`onboardpilot_theme_${sessionId}`);
 
         if (savedAnalysis && savedRepo) {
           const parsedAnalysis = JSON.parse(savedAnalysis);
@@ -71,29 +78,36 @@ export default function GuidePage({ params }: PageProps) {
           setAnalysisJSON(savedAnalysis);
           if (savedContext) setFileContext(JSON.parse(savedContext));
           if (savedGraph) setImportGraph(JSON.parse(savedGraph));
+          if (savedTheme) setThemeData(JSON.parse(savedTheme));
           setRepoInfo(parsedRepo);
           setMessages([
             {
               role: "assistant",
-              content: `Hello! I've mapped the **${parsedAnalysis.repoName}** codebase and generated your onboarding blueprint. Ask me anything about the directories, modules, routing, or how to get started on your first issue!`,
+              content: `Hello! I've mapped the **${parsedAnalysis.repoName}** codebase and generated your onboarding playbook. Ask me anything about the directories, modules, routing, or how to get started on your first issue!`,
             },
           ]);
 
           // Mid-session Auth Migration:
           // If the user was a guest but has now logged in, automatically save this session to Firestore!
           if (user) {
-            await saveAnalysisSession(
-              sessionId,
-              user.uid,
-              parsedRepo,
-              parsedAnalysis,
-              [
-                {
-                  role: "assistant",
-                  content: `Hello! I've mapped the **${parsedAnalysis.repoName}** codebase and generated your onboarding blueprint. Ask me anything about the directories, modules, routing, or how to get started on your first issue!`,
-                },
-              ]
-            );
+            await fetch("/api/db", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "save",
+                sessionId,
+                uid: user.uid,
+                repoInfo: parsedRepo,
+                analysis: parsedAnalysis,
+                messages: [
+                  {
+                    role: "assistant",
+                    content: `Hello! I've mapped the **${parsedAnalysis.repoName}** codebase and generated your onboarding playbook. Ask me anything about the directories, modules, routing, or how to get started on your first issue!`,
+                  },
+                ],
+                themeData: savedTheme ? JSON.parse(savedTheme) : null,
+              }),
+            });
             // Refresh sidebar history
             loadUserHistory(user.uid);
           }
@@ -121,8 +135,9 @@ export default function GuidePage({ params }: PageProps) {
   // 2. Fetch User Scanning History
   const loadUserHistory = async (uid: string) => {
     try {
-      const history = await getUserSessions(uid);
-      setPreviousSessions(history);
+      const dbRes = await fetch(`/api/db?uid=${encodeURIComponent(uid)}`);
+      const dbData = await dbRes.json();
+      setPreviousSessions(dbData.sessions || []);
     } catch (err) {
       console.error("Error loading user history:", err);
     }
@@ -139,9 +154,17 @@ export default function GuidePage({ params }: PageProps) {
   // 3. Q&A Message saving
   const handleUpdateMessages = async (updatedMessages: ChatMessage[]) => {
     setMessages(updatedMessages);
-    if (user && sessionId) {
+    if (sessionId) {
       try {
-        await updateSessionMessages(sessionId, updatedMessages);
+        await fetch("/api/db", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "updateMessages",
+            sessionId,
+            messages: updatedMessages,
+          }),
+        });
       } catch (err) {
         console.error("Failed to persist message history:", err);
       }
@@ -404,6 +427,8 @@ export default function GuidePage({ params }: PageProps) {
             sessionId={sessionId}
             fileContext={fileContext}
             importGraph={importGraph}
+            repoInfo={repoInfo || undefined}
+            initialThemeData={themeData}
           />
         )}
 

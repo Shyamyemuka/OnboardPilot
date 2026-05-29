@@ -120,11 +120,70 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
     );
   }
 
+  const downloadPNG = () => {
+    if (!elementRef.current) return;
+    const svgEl = elementRef.current.querySelector("svg");
+    if (!svgEl) return;
+
+    const svgString = new XMLSerializer().serializeToString(svgEl);
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const DOMURL = window.URL || window.webkitURL || window;
+    const blobURL = DOMURL.createObjectURL(svgBlob);
+
+    const base64Svg = window.btoa(unescape(encodeURIComponent(svgString)));
+    const dataURL = `data:image/svg+xml;base64,${base64Svg}`;
+
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      const rect = svgEl.getBoundingClientRect();
+      canvas.width = rect.width * 2;
+      canvas.height = rect.height * 2;
+      const context = canvas.getContext("2d");
+      if (context) {
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        try {
+          const pngURL = canvas.toDataURL("image/png");
+          const downloadLink = document.createElement("a");
+          downloadLink.href = pngURL;
+          downloadLink.download = "visual_workflow.png";
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        } catch (exportErr) {
+          console.error("Canvas export failed:", exportErr);
+          // Fallback to direct SVG download if canvas gets tainted
+          const downloadLink = document.createElement("a");
+          downloadLink.href = dataURL;
+          downloadLink.download = "visual_workflow.svg";
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        }
+      }
+    };
+    image.src = dataURL;
+  };
+
   return (
-    <div 
-      ref={elementRef}
-      className="p-4 rounded-xl border border-outline-variant bg-surface-container-low overflow-auto flex justify-center items-center max-w-full"
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
+    <div className="flex flex-col gap-2 w-full">
+      <div 
+        ref={elementRef}
+        className="p-4 rounded-xl border border-outline-variant bg-surface-container-low overflow-auto flex justify-center items-center max-w-full"
+        dangerouslySetInnerHTML={{ __html: svg }}
+      />
+      <div className="flex justify-end pr-1">
+        <button
+          onClick={downloadPNG}
+          className="flex items-center gap-1.5 px-3 py-1.5 border border-border-subtle rounded bg-surface-white hover:bg-surface-container-low hover:border-outline-variant transition-all text-xs font-semibold shadow-sm cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-[16px]">image</span>
+          Download Image (PNG)
+        </button>
+      </div>
+    </div>
   );
 }

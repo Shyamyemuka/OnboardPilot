@@ -187,11 +187,11 @@ export default function LandingPage() {
       <footer className="absolute bottom-0 w-full flex flex-col md:flex-row justify-between items-center py-6 px-4 md:px-16 max-w-7xl mx-auto border-t border-surface-variant bg-surface-container-lowest text-on-surface-variant text-label-sm font-label-sm text-xs font-medium select-none">
         <div className="mb-4 md:mb-0">© 2026 OnboardPilot. Built for engineers.</div>
         <div className="flex gap-6">
-          <a className="hover:text-on-surface transition-colors cursor-pointer">Privacy</a>
-          <a className="hover:text-on-surface transition-colors cursor-pointer">Terms</a>
-          <a className="hover:text-on-surface transition-colors cursor-pointer">Changelog</a>
-          <a className="hover:text-on-surface transition-colors cursor-pointer" href="https://github.com" target="_blank" rel="noreferrer">
-            GitHub
+          <a
+            onClick={() => router.push("/how-it-works")}
+            className="hover:text-on-surface transition-colors cursor-pointer font-bold text-[#DEC29A] hover:underline"
+          >
+            How it works
           </a>
         </div>
       </footer>

@@ -21,6 +21,12 @@ export interface SessionDocument {
   analysis: GuideJSON;
   messages: ChatMessage[];
   createdAt: number;
+  themeData?: {
+    themeName: string;
+    analogySummary: string;
+    mappings: Array<{ codeElement: string; themeElement: string; explanation: string }>;
+    mermaidFlowchart: string;
+  } | null;
 }
 
 // Firestore physical storage document interface
@@ -32,6 +38,7 @@ interface SessionData {
   analysisJSON: string; // stored as stringified JSON to avoid Firestore structural depth limits
   messages: ChatMessage[];
   createdAt: number;
+  themeDataJSON?: string | null;
 }
 
 const SESSIONS_COLLECTION = "sessions";
@@ -44,7 +51,8 @@ export async function saveAnalysisSession(
   uid: string,
   repoInfo: { owner: string; repo: string; url: string },
   analysis: GuideJSON,
-  messages: ChatMessage[] = []
+  messages: ChatMessage[] = [],
+  themeData?: any
 ): Promise<void> {
   const sessionDocRef = doc(db, SESSIONS_COLLECTION, sessionId);
   const data: SessionData = {
@@ -55,6 +63,7 @@ export async function saveAnalysisSession(
     analysisJSON: JSON.stringify(analysis),
     messages,
     createdAt: Date.now(),
+    themeDataJSON: themeData ? JSON.stringify(themeData) : null,
   };
   await setDoc(sessionDocRef, data);
 }
@@ -69,6 +78,32 @@ export async function updateSessionMessages(
   const sessionDocRef = doc(db, SESSIONS_COLLECTION, sessionId);
   await updateDoc(sessionDocRef, {
     messages,
+  });
+}
+
+/**
+ * Updates the structural analysis GuideJSON inside an active session in Firestore
+ */
+export async function updateSessionAnalysis(
+  sessionId: string,
+  analysis: GuideJSON
+): Promise<void> {
+  const sessionDocRef = doc(db, SESSIONS_COLLECTION, sessionId);
+  await updateDoc(sessionDocRef, {
+    analysisJSON: JSON.stringify(analysis),
+  });
+}
+
+/**
+ * Updates the theme explanation inside an active session in Firestore
+ */
+export async function updateSessionTheme(
+  sessionId: string,
+  themeData: any
+): Promise<void> {
+  const sessionDocRef = doc(db, SESSIONS_COLLECTION, sessionId);
+  await updateDoc(sessionDocRef, {
+    themeDataJSON: themeData ? JSON.stringify(themeData) : null,
   });
 }
 
@@ -98,6 +133,7 @@ export async function getUserSessions(uid: string): Promise<SessionDocument[]> {
         analysis: JSON.parse(rawData.analysisJSON),
         messages: rawData.messages || [],
         createdAt: rawData.createdAt,
+        themeData: rawData.themeDataJSON ? JSON.parse(rawData.themeDataJSON) : null,
       });
     } catch (parseErr) {
       console.error(`Failed to parse session JSON for document ${doc.id}:`, parseErr);
@@ -126,6 +162,7 @@ export async function getSessionData(sessionId: string): Promise<SessionDocument
         analysis: JSON.parse(rawData.analysisJSON),
         messages: rawData.messages || [],
         createdAt: rawData.createdAt,
+        themeData: rawData.themeDataJSON ? JSON.parse(rawData.themeDataJSON) : null,
       };
     } catch (parseErr) {
       console.error(`Failed to parse session JSON for document ${docSnap.id}:`, parseErr);

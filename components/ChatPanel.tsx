@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { ChatMessage } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 interface ChatPanelProps {
   repoName: string;
@@ -13,6 +14,8 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({ repoName, analysisJSON, messagesState }: ChatPanelProps) {
+  const { user } = useAuth();
+
   // Use stateful props if passed from parent workspace, otherwise fall back to local state
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
   
@@ -24,6 +27,16 @@ export default function ChatPanel({ repoName, analysisJSON, messagesState }: Cha
   const [error, setError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Auto-resize the textarea height dynamically based on input content length
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+    }
+  }, [inputValue]);
 
   // Initialize with greeting message only if empty (or if using local state)
   useEffect(() => {
@@ -31,7 +44,7 @@ export default function ChatPanel({ repoName, analysisJSON, messagesState }: Cha
       setMessages([
         {
           role: "assistant",
-          content: `Hello! I've mapped the **${repoName}** codebase and generated your onboarding blueprint. Ask me anything about the directories, modules, routing, or how to get started on your first issue!`,
+          content: `Hello! I've mapped the **${repoName}** codebase and generated your onboarding playbook. Ask me anything about the directories, modules, routing, or how to get started on your first issue!`,
         },
       ]);
     }
@@ -87,7 +100,11 @@ export default function ChatPanel({ repoName, analysisJSON, messagesState }: Cha
       {/* Chat Header */}
       <div className="p-4 border-b border-border-subtle flex items-center justify-between bg-surface-bright shrink-0 select-none shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[20px] text-primary">smart_toy</span>
+          <img
+            alt="Copilot"
+            className="w-5 h-5 object-contain"
+            src="/logo2.png"
+          />
           <h3 className="font-semibold text-body-md font-body-lg text-on-surface">Copilot</h3>
         </div>
         <div className="text-[10px] uppercase tracking-wider font-bold text-text-muted bg-surface-container px-2 py-0.5 rounded border border-border-subtle">
@@ -103,15 +120,27 @@ export default function ChatPanel({ repoName, analysisJSON, messagesState }: Cha
           return (
             <div key={idx} className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
               {/* Avatar Icon */}
-              <div
-                className={`w-8 h-8 rounded flex items-center justify-center shrink-0 shadow-sm ${
-                  isUser ? "bg-[#A3ABC4] text-white" : "bg-surface-container-low text-primary"
-                }`}
-              >
-                <span className="material-symbols-outlined text-[16px] font-bold">
-                  {isUser ? "person" : "smart_toy"}
-                </span>
-              </div>
+              {isUser ? (
+                user?.photoURL ? (
+                  <img
+                    alt="User"
+                    className="w-8 h-8 rounded border border-border-subtle shadow-sm object-cover shrink-0"
+                    src={user.photoURL}
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded flex items-center justify-center shrink-0 shadow-sm bg-[#A3ABC4] text-white">
+                    <span className="material-symbols-outlined text-[16px] font-bold">
+                      person
+                    </span>
+                  </div>
+                )
+              ) : (
+                <img
+                  alt="Copilot"
+                  className="w-8 h-8 rounded border border-border-subtle shadow-sm object-contain p-1 shrink-0 bg-surface-container-low"
+                  src="/logo2.png"
+                />
+              )}
 
               {/* Message Bubble */}
               <div
@@ -121,30 +150,42 @@ export default function ChatPanel({ repoName, analysisJSON, messagesState }: Cha
                     : "bg-surface-container-low text-on-surface rounded-tl-none border border-border-subtle"
                 }`}
               >
-                {/* Parse simple inline code blocks in messages */}
                 <div className="whitespace-pre-wrap space-y-2">
                   {msg.content.split("\n").map((paragraph, pIdx) => {
-                    // Simple regex replace for `code` blocks
-                    const parts = paragraph.split(/`([^`]+)`/g);
+                    // Split by code blocks first
+                    const codeParts = paragraph.split(/`([^`]+)`/g);
                     return (
                       <p key={pIdx}>
-                        {parts.map((part, partIdx) => {
-                          const isCode = partIdx % 2 === 1;
+                        {codeParts.map((codePart, codePartIdx) => {
+                          const isCode = codePartIdx % 2 === 1;
                           if (isCode) {
                             return (
                               <code
-                                key={partIdx}
+                                key={codePartIdx}
                                 className={`font-mono-code text-[11px] px-1 py-0.5 rounded ${
                                   isUser
                                     ? "bg-slate-700/30 text-white font-bold"
                                     : "bg-surface-white border border-border-subtle text-secondary font-medium"
                                 }`}
                               >
-                                {part}
+                                {codePart}
                               </code>
                             );
                           }
-                          return part;
+
+                          // If not a code block, parse markdown bold (**text**)
+                          const boldParts = codePart.split(/\*\*([^*]+)\*\*/g);
+                          return boldParts.map((boldPart, boldPartIdx) => {
+                            const isBold = boldPartIdx % 2 === 1;
+                            if (isBold) {
+                              return (
+                                <strong key={boldPartIdx} className="font-extrabold text-primary">
+                                  {boldPart}
+                                </strong>
+                              );
+                            }
+                            return boldPart;
+                          });
                         })}
                       </p>
                     );
@@ -192,20 +233,28 @@ export default function ChatPanel({ repoName, analysisJSON, messagesState }: Cha
             e.preventDefault();
             handleSendMessage(inputValue);
           }}
-          className="relative flex items-center"
+          className="relative flex items-end w-full"
         >
-          <input
-            type="text"
+          <textarea
+            ref={textareaRef}
+            rows={1}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage(inputValue);
+              }
+            }}
             disabled={isLoading}
             placeholder="Ask a question about the repo..."
-            className="w-full bg-surface-white border border-border-subtle rounded-lg py-2.5 pl-4 pr-10 text-xs md:text-sm font-body-md focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all placeholder-text-muted disabled:opacity-75"
+            className="w-full bg-surface-white border border-border-subtle rounded-lg py-2.5 pl-4 pr-10 text-xs md:text-sm font-body-md focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all placeholder-text-muted disabled:opacity-75 resize-none overflow-y-auto"
+            style={{ minHeight: "42px", maxHeight: "120px" }}
           />
           <button
             type="submit"
             disabled={!inputValue.trim() || isLoading}
-            className="absolute right-2 text-text-muted hover:text-primary transition-colors p-1 disabled:opacity-40 cursor-pointer"
+            className="absolute right-2 bottom-2 text-text-muted hover:text-primary transition-colors p-1 disabled:opacity-40 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[20px]">send</span>
           </button>

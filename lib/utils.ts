@@ -56,7 +56,29 @@ export function generateSessionId(): string {
 }
 
 function resolveRelativeImport(fromPath: string, importPath: string, allPaths: string[]): string | null {
-  if (!importPath.startsWith(".")) return importPath;
+  if (!importPath.startsWith(".")) {
+    // Check if it matches a path alias like @/components/...
+    if (importPath.startsWith("@/")) {
+      const aliasBase = importPath.slice(2);
+      const candidates = [
+        aliasBase,
+        `${aliasBase}.ts`,
+        `${aliasBase}.tsx`,
+        `${aliasBase}.js`,
+        `${aliasBase}.jsx`,
+        `${aliasBase}/index.ts`,
+        `${aliasBase}/index.tsx`,
+        `components/${aliasBase}`,
+        `components/${aliasBase}.tsx`,
+        `components/${aliasBase}.ts`,
+        `lib/${aliasBase}`,
+        `lib/${aliasBase}.ts`,
+      ];
+      const match = candidates.find((cand) => allPaths.includes(cand));
+      if (match) return match;
+    }
+    return importPath;
+  }
 
   const fromParts = fromPath.split("/");
   fromParts.pop();
@@ -90,7 +112,7 @@ function resolveRelativeImport(fromPath: string, importPath: string, allPaths: s
 export function extractImportGraph(files: Record<string, string>): ImportGraphNode[] {
   const allPaths = Object.keys(files);
 
-  return allPaths
+  const graphNodes = allPaths
     .filter((path) => /\.(ts|tsx|js|jsx|mjs|cjs|py)$/.test(path))
     .map((path) => {
       const content = files[path] || "";
@@ -99,19 +121,37 @@ export function extractImportGraph(files: Record<string, string>): ImportGraphNo
         /import\s+(?:[^'"]+\s+from\s+)?["']([^"']+)["']/g,
         /export\s+[^'"]+\s+from\s+["']([^"']+)["']/g,
         /require\(["']([^"']+)["']\)/g,
-        /^\s*from\s+([a-zA-Z0-9_./]+)\s+import\s+/gm,
-        /^\s*import\s+([a-zA-Z0-9_./]+)/gm,
+        /^\s*from\s+([a-zA-Z0-9_./@]+)\s+import\s+/gm,
+        /^\s*import\s+([a-zA-Z0-9_./@]+)/gm,
       ];
 
       for (const pattern of patterns) {
         let match: RegExpExecArray | null;
         while ((match = pattern.exec(content)) !== null) {
           const resolved = resolveRelativeImport(path, match[1], allPaths);
-          if (resolved) imports.add(resolved);
+          if (resolved && allPaths.includes(resolved) && resolved !== path) {
+            imports.add(resolved);
+          }
         }
       }
 
       return { path, imports: Array.from(imports).slice(0, 12) };
+    });
+
+  // Fallback: If no files have specific internal file-to-file imports matched,
+  // let's show all of them with their declared external/internal imports to prevent blank views.
+  const nodesWithImports = graphNodes.filter((node) => node.imports.length > 0);
+  if (nodesWithImports.length > 0) {
+    return nodesWithImports.slice(0, 35);
+  }
+
+  // If no internal dependencies resolved, create a basic dependency relationship to map files in the view
+  return graphNodes
+    .map((node) => {
+      // Just extract any string matches in the file content that look like other scanned file names
+      const content = files[node.path] || "";
+      const matches = allPaths.filter((p) => p !== node.path && content.includes(p.split("/").pop() || "___"));
+      return { path: node.path, imports: matches.slice(0, 5) };
     })
     .filter((node) => node.imports.length > 0)
     .slice(0, 35);
